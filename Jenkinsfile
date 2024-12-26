@@ -5,16 +5,6 @@ pipeline {
     }
 
     stages {
-        stage('Cleanup') {
-            steps {
-                script {
-                    sh 'docker rm -f uu-frontend || true'
-                    sh 'docker rm -f uu-backend || true'
-                    sh 'docker rm -f db-container || true'
-                }
-            }
-        }
-
         stage('Checkout') {
             steps {
                 script {
@@ -28,7 +18,7 @@ pipeline {
                 MVN_HOME = tool 'mvn'
             }
             steps {
-                dir('./BACKEND/ProsePetal') {
+                dir('./backend') {
                     sh "${MVN_HOME}/bin/mvn clean install"
                 }
             }
@@ -37,11 +27,13 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    dir('./BACKEND') {
-                        docker.build("ankita101242/uu-backend", '.')
+                    dir('./backend') {
+                        docker.build("ankitaagrawal12/backend:latest", '.')
                     }
                     dir('./FRONTEND') {
-                        docker.build("ankita101242/uu-frontend", '.')
+                        sh 'npm install'
+                        sh 'npm run build'
+                        docker.build("ankitaagrawal12/frontend:latest", '.')
                     }
                 }
             }
@@ -51,19 +43,19 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', 'DockerHubCred') {
-                        sh 'docker push ankita101242/prosepetals-frontend:latest'
-                        sh 'docker push ankita101242/prosepetals-backend:latest'
+                        sh 'docker push ankitaagrawal12/frontend:latest'
+                        sh 'docker push ankitaagrawal12/backend:latest'
                     }
                 }
             }
         }
 
-        stage('Run Ansible Playbook') {
+        stage('Deploy to Kubernetes') {
             steps {
-                ansiblePlaybook(
-                    playbook: 'Playbook.yml',
-                    inventory: 'Inventory'
-                )
+                script {
+                    sh 'kubectl apply -f ./kubernetes/frontend-deployment.yaml'
+                    sh 'kubectl apply -f ./kubernetes/backend-deployment.yaml'
+                }
             }
         }
     }
@@ -80,3 +72,4 @@ pipeline {
         }
     }
 }
+
