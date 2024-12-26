@@ -30,7 +30,7 @@ pipeline {
                     dir('./backend') {
                         docker.build("ankitaagrawal12/backend:latest", '.')
                     }
-                    dir('./FRONTEND') {
+                    dir('./frontend') {
                         sh 'npm install'
                         sh 'npm run build'
                         docker.build("ankitaagrawal12/frontend:latest", '.')
